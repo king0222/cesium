@@ -207,6 +207,7 @@ function Scene(options) {
   this._context = context;
   this._computeEngine = new ComputeEngine(context);
   this._globe = undefined;
+  this._globeTranslucencyState = undefined;
   this._primitives = new PrimitiveCollection();
   this._groundPrimitives = new PrimitiveCollection();
 
@@ -1824,7 +1825,7 @@ var requestRenderModeDeferCheckPassState = new Cesium3DTilePassState({
 var scratchOccluderBoundingSphere = new BoundingSphere();
 var scratchOccluder;
 
-function getOccluder(scene, globeTranslucent) {
+function getOccluder(scene) {
   // TODO: The occluder is the top-level globe. When we add
   //       support for multiple central bodies, this should be the closest one.
   var globe = scene.globe;
@@ -1833,7 +1834,7 @@ function getOccluder(scene, globeTranslucent) {
     defined(globe) &&
     globe.show &&
     !scene._cameraUnderground &&
-    !globeTranslucent
+    !scene._globeTranslucencyState.translucent
   ) {
     var ellipsoid = globe.ellipsoid;
     var minimumTerrainHeight = scene.frameState.minimumTerrainHeight;
@@ -1873,10 +1874,11 @@ function updateFrameNumber(scene, frameNumber, time) {
 Scene.prototype.updateFrameState = function () {
   var camera = this.camera;
   var globe = this.globe;
-  var globeTranslucency = this._view.globeTranslucency;
-  var globeTranslucent = GlobeTranslucency.isTranslucent(globe);
-
+  var globeTranslucencyState = this._globeTranslucencyState;
   var frameState = this._frameState;
+
+  globeTranslucencyState.update(globe, frameState);
+
   frameState.commandList.length = 0;
   frameState.shadowMaps.length = 0;
   frameState.brdfLutGenerator = this._brdfLutGenerator;
@@ -1890,7 +1892,7 @@ Scene.prototype.updateFrameState = function () {
     camera.directionWC,
     camera.upWC
   );
-  frameState.occluder = getOccluder(this, globeTranslucent);
+  frameState.occluder = getOccluder(this);
   frameState.terrainExaggeration = this._terrainExaggeration;
   frameState.minimumTerrainHeight = 0.0;
   frameState.minimumDisableDepthTestDistance = this._minimumDisableDepthTestDistance;
@@ -1903,8 +1905,7 @@ Scene.prototype.updateFrameState = function () {
     );
   frameState.light = this.light;
   frameState.cameraUnderground = this._cameraUnderground;
-  frameState.globeTranslucent = globeTranslucent;
-  frameState.globeTranslucency = globeTranslucency;
+  frameState.globeTranslucencyState = globeTranslucencyState;
 
   if (
     defined(this._specularEnvironmentMapAtlas) &&

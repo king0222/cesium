@@ -467,11 +467,6 @@ GlobeSurfaceTileProvider.prototype.endUpdate = function (frameState) {
     );
   }
 
-  var translucentTexturesLength = GlobeTranslucency.getNumberOfTextureUniforms(
-    this,
-    frameState
-  );
-
   // Add the tile render commands to the command list, sorted by texture count.
   var tilesToRenderByTextureCount = this._tilesToRenderByTextureCount;
   for (
@@ -492,7 +487,7 @@ GlobeSurfaceTileProvider.prototype.endUpdate = function (frameState) {
     ) {
       var tile = tilesToRender[tileIndex];
       var tileBoundingRegion = tile.data.tileBoundingRegion;
-      addDrawCommandsForTile(this, tile, translucentTexturesLength, frameState);
+      addDrawCommandsForTile(this, tile, frameState);
       frameState.minimumTerrainHeight = Math.min(
         frameState.minimumTerrainHeight,
         tileBoundingRegion.minimumHeight
@@ -1885,12 +1880,7 @@ var surfaceShaderSetOptionsScratch = {
 
 var defaultUndergroundColorByDistance = new NearFarScalar();
 
-function addDrawCommandsForTile(
-  tileProvider,
-  tile,
-  translucentTexturesLength,
-  frameState
-) {
+function addDrawCommandsForTile(tileProvider, tile, frameState) {
   var surfaceTile = tile.data;
 
   if (!defined(surfaceTile.vertexArray)) {
@@ -1995,7 +1985,7 @@ function addDrawCommandsForTile(
     --maxTextures;
   }
 
-  maxTextures -= translucentTexturesLength;
+  maxTextures -= frameState.globeTranslucencyState.numberOfTextureUniforms;
 
   var mesh = surfaceTile.renderedMesh;
   var rtc = mesh.center;
